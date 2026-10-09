@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+/* ========================================
+   A&DS Department — Design Tokens
+   Primary: #B22B2F
+   Accent:  #D1A550
+   Base:    #FFFFFF
+======================================== */
+
+@theme {
+  /* Brand colors */
+  --color-brand: #b22b2f;
+  --color-brand-dark: #922226;
+  --color-brand-light: #f8e9e9;
+
+  /* Accent colors */
+  --color-gold: #d1a550;
+  --color-gold-dark: #ad8737;
+  --color-gold-light: #f8f0df;
+
+  /* Backgrounds */
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #faf7f5;
+
+  /* Text */
+  --color-foreground: #272323;
+  --color-muted: #6b6262;
+  --color-on-brand: #ffffff;
+
+  /* Borders */
+  --color-border: #e8e1e1;
+  --color-border-strong: #d6caca;
+
+  /* Status colors */
+  --color-success: #23734a;
+  --color-warning: #986515;
+  --color-error: #b22b2f;
+
+  /* Typography */
+  --font-sans: "Inter", "Segoe UI", Arial, sans-serif;
+
+  /* Shadows */
+  --shadow-soft: 0 2px 10px rgb(39 35 35 / 5%);
+  --shadow-card: 0 6px 24px rgb(39 35 35 / 8%);
+}
+
+/* Semantic CSS variables */
+:root {
+  color-scheme: light;
+
+  --brand-primary: var(--color-brand);
+  --brand-primary-hover: var(--color-brand-dark);
+  --brand-primary-soft: var(--color-brand-light);
+
+  --brand-accent: var(--color-gold);
+  --brand-accent-hover: var(--color-gold-dark);
+  --brand-accent-soft: var(--color-gold-light);
+
+  --app-background: var(--color-background);
+  --app-surface: var(--color-surface);
+  --app-surface-muted: var(--color-surface-muted);
+
+  --app-text: var(--color-foreground);
+  --app-text-muted: var(--color-muted);
+
+  --app-border: var(--color-border);
+  --app-border-strong: var(--color-border-strong);
+
+  --app-radius-sm: 6px;
+  --app-radius-md: 10px;
+  --app-radius-lg: 16px;
+
+  font-family: var(--font-sans);
+  color: var(--app-text);
+  background: var(--app-background);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global reset and defaults */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--app-background);
+  color: var(--app-text);
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+  color: var(--app-text);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+p {
+  margin-top: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+/* Accessible keyboard focus */
+:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 3px;
+}
+
+/* Text selection */
+::selection {
+  color: #ffffff;
+  background-color: var(--brand-primary);
+}
+
+/* Consistent form fields */
+input,
+select,
+textarea {
+  color: var(--app-text);
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-primary);
+  outline: 2px solid rgb(178 43 47 / 12%);
+  outline-offset: 1px;
+}
+
+/* Reusable utility classes */
+.container-page {
+  width: min(100% - 2rem, 1280px);
+  margin-inline: auto;
+}
+
+.text-brand {
+  color: var(--brand-primary);
+}
+
+.text-gold {
+  color: var(--brand-accent);
+}
+
+.bg-brand {
+  background-color: var(--brand-primary);
+}
+
+.bg-gold {
+  background-color: var(--brand-accent);
+}
+
+.surface-muted {
+  background-color: var(--app-surface-muted);
+}
+
+.border-default {
+  border: 1px solid var(--app-border);
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
