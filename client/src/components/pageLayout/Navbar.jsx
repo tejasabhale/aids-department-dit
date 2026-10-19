@@ -67,33 +67,57 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 const isPathActive = (pathname, base) =>
   pathname === base || pathname.startsWith(`${base}/`);
 
+// One font style for every nav link, so sizes and weights never drift apart.
+// Active state changes colour only, never weight, so links don't shift width.
+const NAV_TEXT = "text-sm font-medium"; // desktop links, dropdown triggers and items, Contact
+const NAV_TEXT_MOBILE = "text-base font-medium"; // every mobile row and sub-item
+
 const FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const FOCUS_RING_INSET =
   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand";
 
+/*
+  Show/hide transitions.
+  - While OPENING, `visibility` is left out of the transition so the element
+    becomes visible (and focusable) immediately.
+  - While CLOSING, `visibility` is included so it stays visible until the
+    fade-out finishes, then drops out of the tab order.
+*/
+const MENU_TRANSITION_OPEN =
+  "transition-[opacity,translate,scale] duration-200 ease-out";
+const MENU_TRANSITION_CLOSE =
+  "transition-[opacity,translate,scale,visibility] duration-150 ease-in";
+
+const PANEL_TRANSITION_OPEN =
+  "transition-[grid-template-rows,opacity,box-shadow] duration-300 ease-out";
+const PANEL_TRANSITION_CLOSE =
+  "transition-[grid-template-rows,opacity,box-shadow,visibility] duration-250 ease-in";
+
 const desktopItemClasses = (active) =>
   cn(
-    "relative inline-flex h-16 items-center gap-1 whitespace-nowrap px-2.5 text-sm font-medium",
-    "transition-colors duration-150 motion-reduce:transition-none",
+    "relative inline-flex h-16 items-center gap-1 whitespace-nowrap px-2.5",
+    NAV_TEXT,
+    "transition-colors duration-200 motion-reduce:transition-none",
     "after:absolute after:inset-x-2.5 after:bottom-0 after:h-0.5 after:rounded-full after:bg-gold",
-    "after:origin-center after:transition-transform after:duration-200 motion-reduce:after:transition-none",
+    "after:origin-center after:transition-transform after:duration-300 after:ease-out motion-reduce:after:transition-none",
     FOCUS_RING_INSET,
     active
       ? "text-brand after:scale-x-100"
       : "text-foreground hover:text-brand after:scale-x-0 hover:after:scale-x-100",
   );
 
+// Contact button is ALWAYS bg-brand with white text (default, hover, focus, active, mobile).
 const contactClasses = (active) =>
   cn(
-    "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md px-5 text-sm font-semibold no-underline",
+    "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md px-5 no-underline",
+    NAV_TEXT,
     // The trailing "!" forces white text so no global `a { color }` rule can override it.
     "bg-brand text-on-brand! visited:text-on-brand! hover:text-on-brand! focus:text-on-brand! focus-visible:text-on-brand! active:text-on-brand!",
-    "hover:bg-brand-dark hover:shadow-soft hover:-translate-y-px active:translate-y-0",
-    "transition-[background-color,box-shadow,transform] duration-150",
-    "motion-reduce:transition-none motion-reduce:hover:transform-none",
+    "hover:shadow-card",
+    "transition-shadow duration-200 ease-out motion-reduce:transition-none",
     FOCUS_RING,
-    active && "bg-brand-dark",
+    active && "shadow-card",
   );
 
 /* ------------------------------------------------------------------ */
@@ -111,7 +135,7 @@ function ChevronIcon({ open }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn(
-        "h-4 w-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none",
+        "h-4 w-4 shrink-0 transition-transform duration-300 ease-out motion-reduce:transition-none",
         open && "rotate-180",
       )}
     >
@@ -120,35 +144,18 @@ function ChevronIcon({ open }) {
   );
 }
 
-function MenuIcon() {
+// Hamburger that morphs into a close (X) icon.
+function MenuToggleIcon({ open }) {
+  const bar =
+    "absolute left-1 right-1 h-0.5 rounded-full bg-current transition-all duration-300 ease-out motion-reduce:transition-none";
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="h-6 w-6"
-    >
-      <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="h-6 w-6"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
+    <span aria-hidden="true" className="relative block h-6 w-6">
+      <span className={cn(bar, open ? "top-[11px] rotate-45" : "top-[5px]")} />
+      <span className={cn(bar, "top-[11px]", open && "scale-x-0 opacity-0")} />
+      <span
+        className={cn(bar, open ? "top-[11px] -rotate-45" : "top-[17px]")}
+      />
+    </span>
   );
 }
 
@@ -162,13 +169,13 @@ function Brand() {
       to="/"
       aria-label="Artificial Intelligence and Data Science department, home"
       className={cn(
-        "flex shrink-0 items-center gap-2.5 rounded-md",
+        "group flex shrink-0 items-center gap-2.5 rounded-md",
         FOCUS_RING,
       )}
     >
       <span
         aria-hidden="true"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-b-4 border-gold bg-brand text-[11px] font-bold tracking-tight text-on-brand"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-b-4 border-gold bg-brand text-[11px] font-bold tracking-tight text-on-brand transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:transform-none"
       >
         AI&amp;DS
       </span>
@@ -265,51 +272,75 @@ function DesktopDropdown({ item, isOpen, isActive, onToggle, onClose }) {
         <ChevronIcon open={isOpen} />
       </button>
 
-      {isOpen && (
-        <ul
-          id={menuId}
-          ref={menuRef}
-          onKeyDown={handleMenuKeyDown}
-          // Floating card: 8px below the bar so it never touches the trigger
-          // underline or the header border. No gold top line.
-          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-border bg-surface p-1.5 shadow-card"
-        >
-          {item.children.map((child) => (
-            <li key={child.to}>
-              <NavLink
-                to={child.to}
-                end
-                onClick={onClose}
-                className={({ isActive: childActive }) =>
-                  cn(
-                    "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium no-underline",
-                    "transition-colors duration-150 motion-reduce:transition-none",
-                    FOCUS_RING_INSET,
-                    // Hover and keyboard focus: solid red row, forced white text.
-                    "hover:bg-brand hover:text-on-brand! focus-visible:bg-brand focus-visible:text-on-brand!",
-                    childActive
-                      ? "bg-brand-light font-semibold text-brand"
-                      : "text-foreground",
-                  )
-                }
-              >
-                {({ isActive: childActive }) => (
-                  <>
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "h-1.5 w-1.5 shrink-0 rounded-full",
-                        childActive ? "bg-gold" : "bg-transparent",
-                      )}
-                    />
-                    <span>{child.label}</span>
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/*
+        Always rendered so it can animate in AND out. While closed it is
+        `invisible`, so it cannot be tabbed to or read by screen readers.
+        Floating card, 8px below the bar. No gold top line.
+      */}
+      <ul
+        id={menuId}
+        ref={menuRef}
+        onKeyDown={handleMenuKeyDown}
+        className={cn(
+          "absolute left-0 top-full z-50 mt-2 w-64 origin-top-left rounded-lg border border-border bg-surface p-1.5 shadow-card",
+          "motion-reduce:transition-none",
+          isOpen
+            ? cn(
+                MENU_TRANSITION_OPEN,
+                "visible translate-y-0 scale-100 opacity-100",
+              )
+            : cn(
+                MENU_TRANSITION_CLOSE,
+                "pointer-events-none invisible -translate-y-2 scale-95 opacity-0",
+              ),
+        )}
+      >
+        {item.children.map((child, index) => (
+          <li
+            key={child.to}
+            className={cn(
+              "motion-reduce:transition-none",
+              isOpen
+                ? "translate-y-0 opacity-100 transition-[opacity,translate] duration-300 ease-out"
+                : "translate-y-1 opacity-0",
+            )}
+            // Items cascade in one after another when the menu opens.
+            style={{ transitionDelay: isOpen ? `${70 + index * 45}ms` : "0ms" }}
+          >
+            <NavLink
+              to={child.to}
+              end
+              onClick={onClose}
+              className={({ isActive: childActive }) =>
+                cn(
+                  "group flex items-center gap-2.5 rounded-md px-3 py-2.5 no-underline",
+                  NAV_TEXT,
+                  "transition-colors duration-200 motion-reduce:transition-none",
+                  FOCUS_RING_INSET,
+                  // Hover and keyboard focus: solid red row, forced white text.
+                  "hover:bg-brand hover:text-on-brand! focus-visible:bg-brand focus-visible:text-on-brand!",
+                  childActive ? "bg-brand-light text-brand" : "text-foreground",
+                )
+              }
+            >
+              {({ isActive: childActive }) => (
+                <>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      childActive ? "bg-gold" : "bg-transparent",
+                    )}
+                  />
+                  <span className="transition-transform duration-200 ease-out group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0">
+                    {child.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
     </li>
   );
 }
@@ -318,14 +349,35 @@ function DesktopDropdown({ item, isOpen, isActive, onToggle, onClose }) {
 /* Mobile pieces                                                       */
 /* ------------------------------------------------------------------ */
 
-const mobileRowClasses =
-  "flex min-h-12 w-full items-center border-b border-border px-4 text-base font-medium transition-colors motion-reduce:transition-none";
+const mobileRowClasses = cn(
+  "flex min-h-12 w-full items-center border-b border-border px-4 transition-colors duration-200 motion-reduce:transition-none",
+  NAV_TEXT_MOBILE,
+);
 
-function MobileGroup({ item, isActive, isExpanded, onToggle }) {
+// Rows fade/slide in one by one when the mobile panel opens.
+const mobileRowMotion = (open, index) => ({
+  className: cn(
+    "motion-reduce:transition-none",
+    open
+      ? "translate-y-0 opacity-100 transition-[opacity,translate] duration-300 ease-out"
+      : "-translate-y-1 opacity-0",
+  ),
+  style: { transitionDelay: open ? `${80 + index * 35}ms` : "0ms" },
+});
+
+function MobileGroup({
+  item,
+  index,
+  panelOpen,
+  isActive,
+  isExpanded,
+  onToggle,
+}) {
   const panelId = `mobile-menu-${item.id}`;
+  const motion = mobileRowMotion(panelOpen, index);
 
   return (
-    <li>
+    <li className={motion.className} style={motion.style}>
       <button
         type="button"
         aria-expanded={isExpanded}
@@ -342,21 +394,36 @@ function MobileGroup({ item, isActive, isExpanded, onToggle }) {
         <ChevronIcon open={isExpanded} />
       </button>
 
-      {isExpanded && (
-        <ul id={panelId} className="border-b border-border bg-surface-muted">
-          {item.children.map((child) => (
-            <li key={child.to}>
+      {/* Smooth height animation via grid rows (0fr -> 1fr). */}
+      <div
+        id={panelId}
+        className={cn(
+          "grid motion-reduce:transition-none",
+          isExpanded
+            ? "grid-rows-[1fr] visible opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out"
+            : "grid-rows-[0fr] invisible opacity-0 transition-[grid-template-rows,opacity,visibility] duration-250 ease-in",
+        )}
+      >
+        <ul className="min-h-0 overflow-hidden bg-surface-muted">
+          {item.children.map((child, i) => (
+            <li
+              key={child.to}
+              className={cn(
+                i === item.children.length - 1 && "border-b border-border",
+              )}
+            >
               <NavLink
                 to={child.to}
                 end
                 className={({ isActive: childActive }) =>
                   cn(
-                    "flex min-h-12 items-center border-l-4 py-2 pl-8 pr-4 text-[15px] font-medium no-underline",
-                    "transition-colors motion-reduce:transition-none",
+                    "flex min-h-12 items-center border-l-4 py-2 pl-8 pr-4 no-underline",
+                    NAV_TEXT_MOBILE,
+                    "transition-colors duration-200 motion-reduce:transition-none",
                     FOCUS_RING_INSET,
                     "active:bg-brand active:text-on-brand!",
                     childActive
-                      ? "border-l-gold bg-brand-light font-semibold text-brand"
+                      ? "border-l-gold bg-brand-light text-brand"
                       : "border-l-transparent text-foreground",
                   )
                 }
@@ -366,7 +433,7 @@ function MobileGroup({ item, isActive, isExpanded, onToggle }) {
             </li>
           ))}
         </ul>
-      )}
+      </div>
     </li>
   );
 }
@@ -451,18 +518,18 @@ export default function Navbar() {
   }, []);
 
   const toggleMobile = () => {
-    setMobileOpen((open) => {
-      if (!open) setMobileExpanded(activeGroupId);
-      return !open;
-    });
+    if (!mobileOpen) setMobileExpanded(activeGroupId);
+    setMobileOpen((open) => !open);
   };
+
+  const contactMotion = mobileRowMotion(mobileOpen, NAV_ITEMS.length);
 
   return (
     <header
       ref={headerRef}
       className={cn(
-        "sticky top-0 z-50 border-b border-border bg-surface transition-shadow motion-reduce:transition-none",
-        scrolled && "shadow-soft",
+        "sticky top-0 z-50 border-b bg-surface transition-[box-shadow,border-color] duration-300 motion-reduce:transition-none",
+        scrolled ? "border-border shadow-soft" : "border-border",
       )}
     >
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -520,71 +587,100 @@ export default function Navbar() {
           onClick={toggleMobile}
           className={cn(
             "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-foreground xl:hidden",
-            "transition-colors hover:border-border-strong hover:text-brand motion-reduce:transition-none",
+            "transition-colors duration-200 hover:border-border-strong hover:text-brand motion-reduce:transition-none",
             FOCUS_RING,
           )}
         >
-          {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+          <MenuToggleIcon open={mobileOpen} />
         </button>
       </div>
 
-      {/* Mobile / tablet panel */}
-      {mobileOpen && (
-        <nav
-          id="mobile-menu"
-          aria-label="Mobile navigation"
-          className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-b border-border bg-surface shadow-card xl:hidden"
-        >
-          <ul className="border-t border-border">
-            {NAV_ITEMS.map((item) =>
-              item.type === "group" ? (
-                <MobileGroup
-                  key={item.id}
-                  item={item}
-                  isActive={isPathActive(pathname, item.base)}
-                  isExpanded={mobileExpanded === item.id}
-                  onToggle={() =>
-                    setMobileExpanded((current) =>
-                      current === item.id ? null : item.id,
-                    )
-                  }
-                />
-              ) : (
-                <li key={item.id}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      cn(
-                        mobileRowClasses,
-                        "border-l-4 no-underline",
-                        FOCUS_RING_INSET,
-                        "active:bg-brand active:text-on-brand!",
-                        isActive
-                          ? "border-l-gold bg-brand-light text-brand"
-                          : "border-l-transparent text-foreground",
-                      )
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                </li>
+      {/*
+        Mobile / tablet panel: always rendered so it can slide open and closed.
+        Height animates with grid rows (0fr -> 1fr); `invisible` while closed
+        keeps it out of the tab order.
+      */}
+      <div
+        id="mobile-menu"
+        className={cn(
+          "absolute inset-x-0 top-full grid bg-surface xl:hidden motion-reduce:transition-none",
+          mobileOpen
+            ? cn(
+                PANEL_TRANSITION_OPEN,
+                "visible grid-rows-[1fr] opacity-100 shadow-card",
+              )
+            : cn(
+                PANEL_TRANSITION_CLOSE,
+                "invisible grid-rows-[0fr] opacity-0 shadow-none",
               ),
-            )}
-          </ul>
+        )}
+      >
+        <nav aria-label="Mobile navigation" className="min-h-0 overflow-hidden">
+          <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-b border-border">
+            <ul className="border-t border-border">
+              {NAV_ITEMS.map((item, index) => {
+                if (item.type === "group") {
+                  return (
+                    <MobileGroup
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      panelOpen={mobileOpen}
+                      isActive={isPathActive(pathname, item.base)}
+                      isExpanded={mobileExpanded === item.id}
+                      onToggle={() =>
+                        setMobileExpanded((current) =>
+                          current === item.id ? null : item.id,
+                        )
+                      }
+                    />
+                  );
+                }
+                const motion = mobileRowMotion(mobileOpen, index);
+                return (
+                  <li
+                    key={item.id}
+                    className={motion.className}
+                    style={motion.style}
+                  >
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) =>
+                        cn(
+                          mobileRowClasses,
+                          "border-l-4 no-underline",
+                          FOCUS_RING_INSET,
+                          "active:bg-brand active:text-on-brand!",
+                          isActive
+                            ? "border-l-gold bg-brand-light text-brand"
+                            : "border-l-transparent text-foreground",
+                        )
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ul>
 
-          <div className="p-4">
-            <NavLink
-              to={CONTACT.to}
-              className={({ isActive }) =>
-                cn(contactClasses(isActive), "h-12 w-full text-base")
-              }
+            <div
+              className={cn("p-4", contactMotion.className)}
+              style={contactMotion.style}
             >
-              {CONTACT.label}
-            </NavLink>
+              <NavLink
+                to={CONTACT.to}
+                className={({ isActive }) =>
+                  cn(contactClasses(isActive), "h-12 w-full", NAV_TEXT_MOBILE)
+                }
+              >
+                {CONTACT.label}
+              </NavLink>
+            </div>
           </div>
         </nav>
-      )}
+      </div>
     </header>
   );
 }
