@@ -1,7 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import {
+  animate,
+  motion,
+  useInView,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 
 /* ------------------------------------------------------------------ */
-/* Data — PLACEHOLDER numbers, replace with real department figures    */
+/* Department statistics                                               */
+/* Replace these sample figures with verified department data.          */
 /* ------------------------------------------------------------------ */
 
 const ICONS = {
@@ -16,121 +26,165 @@ const ICONS = {
 };
 
 const stats = [
-  { id: "students", icon: ICONS.students, value: 1000, suffix: "+", label: "Students Enrolled", note: "Across all years" },
-  { id: "faculty", icon: ICONS.faculty, value: 20, suffix: "+", label: "Faculty Members", note: "Experienced mentors" },
-  { id: "research", icon: ICONS.research, value: 50, suffix: "+", label: "Research Papers", note: "Published by the department" },
-  { id: "placements", icon: ICONS.placements, value: 95, suffix: "%", label: "Placement Support", note: "Training and drives" },
+  {
+    id: "students",
+    icon: ICONS.students,
+    value: 1000,
+    suffix: "+",
+    label: "Students Enrolled",
+    note: "Across all academic years",
+  },
+  {
+    id: "faculty",
+    icon: ICONS.faculty,
+    value: 20,
+    suffix: "+",
+    label: "Faculty Members",
+    note: "Teaching and research mentors",
+  },
+  {
+    id: "research",
+    icon: ICONS.research,
+    value: 50,
+    suffix: "+",
+    label: "Research Papers",
+    note: "Published by the department",
+  },
+  {
+    id: "placements",
+    icon: ICONS.placements,
+    value: 95,
+    suffix: "%",
+    label: "Placement Support",
+    note: "Career guidance and preparation",
+  },
 ];
 
 /* ------------------------------------------------------------------ */
-/* Hooks                                                               */
+/* Motion variants                                                     */
 /* ------------------------------------------------------------------ */
 
-// Becomes true once, the first time the element scrolls into view.
-function useInViewOnce(ref, threshold = 0.25) {
-  const [seen, setSeen] = useState(false);
+const EASE = [0.22, 1, 0.36, 1];
+
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+};
+
+/* ------------------------------------------------------------------ */
+/* Count-up: replays every time the panel enters view (up or down)      */
+/* Writes straight to the DOM, so no re-render per frame                */
+/* ------------------------------------------------------------------ */
+
+function CountUp({ value, suffix, start, reduceMotion }) {
+  const ref = useRef(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    if (typeof IntersectionObserver === "undefined") {
-      setSeen(true);
+    const node = ref.current;
+    if (!node) return undefined;
+
+    if (!start) {
+      node.textContent = reduceMotion ? value : 0;
       return undefined;
     }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setSeen(true);
-          observer.disconnect();
-        }
-      },
-      { threshold },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref, threshold]);
 
-  return seen;
-}
-
-// Counts from 0 to `target` with an ease-out curve once `start` is true.
-function useCountUp(target, start, duration = 1800) {
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (!start) return undefined;
-
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
-      setValue(target);
+      node.textContent = value;
       return undefined;
     }
 
-    let frame;
-    const startedAt = performance.now();
-    const tick = (now) => {
-      const progress = Math.min((now - startedAt) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [start, target, duration]);
+    const controls = animate(0, value, {
+      duration: 1.6,
+      ease: EASE,
+      onUpdate: (latest) => {
+        node.textContent = Math.round(latest);
+      },
+    });
 
-  return value;
-}
-
-/* ------------------------------------------------------------------ */
-/* Card                                                                */
-/* ------------------------------------------------------------------ */
-
-function StatCard({ stat, index, visible }) {
-  const count = useCountUp(stat.value, visible);
+    return () => controls.stop();
+  }, [start, value, reduceMotion]);
 
   return (
-    <div
-      className={[
-        "group relative overflow-hidden rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6",
-        "transition-[border-color,box-shadow,opacity,translate] duration-500 ease-out",
-        "hover:border-gold hover:shadow-card motion-reduce:transition-none",
-        visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
-      ].join(" ")}
-      style={{ transitionDelay: visible ? `${index * 90}ms` : "0ms" }}
-    >
-      <span
-        aria-hidden="true"
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-light text-brand transition-colors duration-300 group-hover:bg-brand group-hover:text-on-brand motion-reduce:transition-none"
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-          <path d={stat.icon} />
-        </svg>
+    <>
+      <span aria-hidden="true">
+        <span ref={ref}>0</span>
+        {suffix}
       </span>
+      <span className="sr-only">
+        {value}
+        {suffix}
+      </span>
+    </>
+  );
+}
 
-      <p className="mt-4 text-3xl font-extrabold leading-none text-brand tabular-nums sm:text-4xl">
-        {/* Screen readers get the final number; the animated one is visual only */}
-        <span aria-hidden="true">
-          {count}
-          {stat.suffix}
-        </span>
-        <span className="sr-only">
-          {stat.value}
-          {stat.suffix}
-        </span>
-      </p>
+/* ------------------------------------------------------------------ */
+/* Stat cell                                                           */
+/* ------------------------------------------------------------------ */
 
-      <p className="mt-2 text-sm font-semibold text-foreground sm:text-base">{stat.label}</p>
-      <p className="mt-0.5 text-xs text-muted sm:text-sm">{stat.note}</p>
+function StatCell({ stat, index, visible, reduceMotion, progress }) {
+  // Alternate cells drift in opposite directions as the section scrolls.
+  const shift = reduceMotion ? 0 : index % 2 === 0 ? 14 : -14;
+  const numberY = useTransform(progress, [0, 1], [shift, -shift]);
 
-      {/* Gold bar draws across the bottom on hover (no scaling, no movement) */}
+  return (
+    <motion.article
+      variants={item}
+      className="group relative flex min-w-0 flex-col gap-3 overflow-hidden bg-foreground p-5 sm:p-6"
+    >
+      {/* Hover wash */}
       <span
         aria-hidden="true"
-        className="absolute bottom-0 left-0 h-1 w-0 bg-gold transition-[width] duration-500 ease-out group-hover:w-full motion-reduce:transition-none"
+        className="pointer-events-none absolute inset-0 bg-gold/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none"
       />
-    </div>
+
+      <div className="relative flex items-center justify-between">
+        <span
+          aria-hidden="true"
+          className="flex h-10 w-10 items-center justify-center rounded-lg bg-on-brand/10 text-gold transition-colors duration-300 group-hover:bg-gold group-hover:text-foreground"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+            <path d={stat.icon} />
+          </svg>
+        </span>
+
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 rounded-full bg-gold transition-transform duration-300 group-hover:scale-150"
+        />
+      </div>
+
+      <motion.p
+        style={{ y: numberY }}
+        className="relative text-4xl font-bold leading-none tracking-tight text-gold tabular-nums sm:text-5xl"
+      >
+        <CountUp
+          value={stat.value}
+          suffix={stat.suffix}
+          start={visible}
+          reduceMotion={reduceMotion}
+        />
+      </motion.p>
+
+      <div className="relative">
+        <h3 className="text-sm font-semibold text-on-brand sm:text-base">
+          {stat.label}
+        </h3>
+        <p className="mt-0.5 text-xs leading-5 text-border-strong sm:text-sm">
+          {stat.note}
+        </p>
+      </div>
+
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-gold transition-transform duration-300 ease-out group-hover:scale-x-100 motion-reduce:transition-none"
+      />
+    </motion.article>
   );
 }
 
@@ -138,23 +192,133 @@ function StatCard({ stat, index, visible }) {
 /* Section                                                             */
 /* ------------------------------------------------------------------ */
 
-const Stats = () => {
+export default function Stats() {
   const sectionRef = useRef(null);
-  const visible = useInViewOnce(sectionRef);
+  const gridRef = useRef(null);
+  const reduceMotion = useReducedMotion();
+
+  // Not "once": reveals replay when scrolling down and back up.
+  const visible = useInView(gridRef, { amount: 0.35 });
+
+  // Scroll progress across the section (0 as it enters, 1 as it leaves).
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const patternY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    reduceMotion ? [0, 0] : [-40, 40],
+  );
+  const headingY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    reduceMotion ? [0, 0] : [16, -16],
+  );
+  const lineScale = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 24,
+    mass: 0.4,
+  });
 
   return (
     <section
       ref={sectionRef}
-      aria-label="Department at a glance"
-      className="bg-surface py-10 sm:py-14"
+      aria-labelledby="department-stats-title"
+      className="relative isolate overflow-hidden bg-foreground py-10 text-on-brand sm:py-12 lg:py-14"
     >
-      <div className="container-page grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <StatCard key={stat.id} stat={stat} index={index} visible={visible} />
-        ))}
+      {/* Minimal dot grid that drifts slowly with scroll */}
+      <motion.div
+        aria-hidden="true"
+        style={{
+          y: patternY,
+          backgroundImage:
+            "radial-gradient(var(--color-on-brand) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+        className="pointer-events-none absolute -inset-y-12 inset-x-0 -z-10 opacity-[0.07]"
+      />
+
+      <div className="container-page">
+        {/* Header: title left, copy right */}
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ amount: 0.5 }}
+          variants={container}
+          style={{ y: headingY }}
+          className="mb-6 flex flex-col gap-3 sm:mb-8 md:flex-row md:items-end md:justify-between md:gap-10"
+        >
+          <div>
+            <motion.p
+              variants={item}
+              className="mb-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-gold"
+            >
+              <motion.span
+                aria-hidden="true"
+                variants={{
+                  hidden: { scaleX: 0 },
+                  show: {
+                    scaleX: 1,
+                    transition: { duration: 0.6, ease: EASE },
+                  },
+                }}
+                className="h-0.5 w-8 origin-left bg-gold"
+              />
+              The department in numbers
+            </motion.p>
+
+            <motion.h2
+              id="department-stats-title"
+              variants={item}
+              className="text-2xl font-bold leading-tight tracking-tight text-on-brand sm:text-3xl lg:text-4xl"
+            >
+              Learning today.{" "}
+              <span className="text-gold">Building tomorrow.</span>
+            </motion.h2>
+          </div>
+
+          <motion.p
+            variants={item}
+            className="max-w-sm text-sm leading-6 text-border-strong"
+          >
+            A snapshot of our academic community, research activity, and career
+            development support.
+          </motion.p>
+        </motion.div>
+
+        {/* Scroll progress hairline */}
+        <div
+          aria-hidden="true"
+          className="mb-4 h-px w-full bg-on-brand/10 sm:mb-5"
+        >
+          <motion.div
+            style={{ scaleX: lineScale }}
+            className="h-full origin-left bg-gold"
+          />
+        </div>
+
+        {/* Stats: one bordered panel, cells separated by 1px gaps */}
+        <motion.div
+          ref={gridRef}
+          initial="hidden"
+          animate={visible ? "show" : "hidden"}
+          variants={container}
+          className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-on-brand/10 bg-on-brand/10 min-[420px]:grid-cols-2 lg:grid-cols-4"
+        >
+          {stats.map((stat, index) => (
+            <StatCell
+              key={stat.id}
+              stat={stat}
+              index={index}
+              visible={visible}
+              reduceMotion={reduceMotion}
+              progress={scrollYProgress}
+            />
+          ))}
+        </motion.div>
       </div>
     </section>
   );
-};
-
-export default Stats;
+}
