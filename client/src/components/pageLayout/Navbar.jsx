@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { id: "faculty", label: "Faculty", to: "/faculty" },
   { id: "research", label: "Research", to: "/research" },
   { id: "student-life", label: "Student Life", to: "/student-life" },
-  { id: "events", label: "Events", to: "/events" },
+  { id: "gallery", label: "Gallery", to: "/gallery" },
   { id: "placements", label: "Placements", to: "/placements" },
 ];
 
@@ -26,6 +26,13 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const NAV_TEXT = "text-sm font-medium";
 const NAV_TEXT_MOBILE = "text-base font-medium";
+
+/*
+ * Desktop navigation starts at the `lg` breakpoint (64rem / 1024px).
+ * Below it, phones AND tablets share the same hamburger menu.
+ * Keep DESKTOP_QUERY in sync with Tailwind's `lg`.
+ */
+const DESKTOP_QUERY = "(min-width: 64rem)";
 
 /*
  * Fluid side gutter shared by the header and the mobile menu rows. It grows
@@ -43,13 +50,12 @@ const FOCUS_RING =
 const FOCUS_RING_INSET =
   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand";
 
-const desktopItemClasses = (active, height = "h-16") =>
+const desktopItemClasses = (active) =>
   cn(
-    "relative inline-flex items-center whitespace-nowrap px-2 2xl:px-2.5",
-    height,
+    "relative inline-flex h-[4.5rem] items-center whitespace-nowrap px-1.5 xl:px-2 2xl:px-2.5",
     NAV_TEXT,
     "transition-colors duration-200 motion-reduce:transition-none",
-    "after:absolute after:inset-x-2 2xl:after:inset-x-2.5 after:bottom-0 after:h-0.5 after:rounded-full after:bg-gold",
+    "after:absolute after:inset-x-1.5 xl:after:inset-x-2 2xl:after:inset-x-2.5 after:bottom-0 after:h-0.5 after:rounded-full after:bg-gold",
     "after:origin-center after:transition-transform after:duration-300 after:ease-out",
     "motion-reduce:after:transition-none",
     FOCUS_RING_INSET,
@@ -60,7 +66,7 @@ const desktopItemClasses = (active, height = "h-16") =>
 
 const contactClasses = (active) =>
   cn(
-    "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md px-5 no-underline",
+    "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md px-4 no-underline xl:px-5",
     NAV_TEXT,
     "bg-brand text-on-brand! visited:text-on-brand! hover:text-on-brand! focus:text-on-brand! focus-visible:text-on-brand! active:text-on-brand!",
     "hover:shadow-card",
@@ -119,24 +125,30 @@ function Brand({ onHomeClick }) {
       onClick={onHomeClick}
       aria-label="Artificial Intelligence and Data Science department, home"
       className={cn(
-        "group flex min-w-0 shrink items-center gap-2 rounded-md sm:gap-2.5",
+        "group flex min-w-0 shrink items-center gap-2.5 rounded-md sm:gap-3.5",
         FOCUS_RING,
       )}
     >
       <img
-        className="h-9 w-9 shrink-0 rounded-md object-contain sm:h-10 sm:w-10"
+        className="h-11 w-11 shrink-0 rounded-md object-contain sm:h-14 sm:w-14"
         src="/logo/logo.png"
         alt=""
-        width="40"
-        height="40"
+        width="56"
+        height="56"
       />
 
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-[13px] font-semibold text-foreground sm:text-[15px]">
+      {/* Divider separates the logo from the department name */}
+      <span
+        aria-hidden="true"
+        className="hidden h-10 w-px shrink-0 bg-border-strong sm:block"
+      />
+
+      <span className="flex min-w-0 flex-col justify-center">
+        <span className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground sm:text-[17px] lg:text-base xl:text-lg">
           Artificial Intelligence
         </span>
 
-        <span className="truncate text-[11.5px] font-medium text-brand sm:text-[13px]">
+        <span className="truncate text-[12.5px] font-semibold leading-tight text-brand sm:text-sm xl:text-[15px]">
           &amp; Data Science
         </span>
       </span>
@@ -156,17 +168,10 @@ export default function Navbar() {
 
   const headerRef = useRef(null);
   const toggleRef = useRef(null);
-  const tabletNavRef = useRef(null);
 
   // Close the mobile menu after navigation.
   useEffect(() => {
     setMobileOpen(false);
-  }, [pathname]);
-
-  // Tablet strip: keep the current page's tab visible if the strip scrolls.
-  useEffect(() => {
-    const active = tabletNavRef.current?.querySelector('[aria-current="page"]');
-    active?.scrollIntoView({ inline: "center", block: "nearest" });
   }, [pathname]);
 
   // Add a subtle shadow when the page is scrolled.
@@ -232,9 +237,9 @@ export default function Navbar() {
     };
   }, [mobileOpen]);
 
-  // Close the mobile menu when switching to the tablet or desktop layout.
+  // Close the mobile menu when switching to the desktop layout.
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 48rem)");
+    const mediaQuery = window.matchMedia(DESKTOP_QUERY);
 
     const handleChange = (event) => {
       if (event.matches) {
@@ -297,13 +302,13 @@ export default function Navbar() {
       )}
     >
       <div
-        className="mx-auto flex h-16 w-full max-w-[1760px] items-center justify-between gap-3 sm:gap-4"
+        className="mx-auto flex h-[4.5rem] w-full max-w-[1760px] items-center justify-between gap-3 sm:gap-4"
         style={GUTTER_STYLE}
       >
         <Brand onHomeClick={() => handleNavClick("/")} />
 
-        {/* Desktop navigation: regular links only */}
-        <nav aria-label="Main navigation" className="hidden shrink-0 xl:block">
+        {/* Desktop navigation (lg and up) */}
+        <nav aria-label="Main navigation" className="hidden shrink-0 lg:block">
           <ul className="flex items-center gap-0.5 2xl:gap-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.id}>
@@ -318,7 +323,7 @@ export default function Navbar() {
               </li>
             ))}
 
-            <li className="ml-3 2xl:ml-4">
+            <li className="ml-2 xl:ml-3 2xl:ml-4">
               <NavLink
                 to={CONTACT.to}
                 onClick={() => handleNavClick(CONTACT.to)}
@@ -330,18 +335,7 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        {/* Tablet: Contact stays in the top row, links move to the strip below */}
-        <div className="hidden shrink-0 md:block xl:hidden">
-          <NavLink
-            to={CONTACT.to}
-            onClick={() => handleNavClick(CONTACT.to)}
-            className={({ isActive }) => contactClasses(isActive)}
-          >
-            {CONTACT.label}
-          </NavLink>
-        </div>
-
-        {/* Mobile toggle (phones only) */}
+        {/* Hamburger toggle (phones and tablets) */}
         <button
           ref={toggleRef}
           type="button"
@@ -350,7 +344,7 @@ export default function Navbar() {
           aria-controls="mobile-menu"
           onClick={toggleMobile}
           className={cn(
-            "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-foreground md:hidden",
+            "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border text-foreground lg:hidden",
             "transition-colors duration-200 hover:border-border-strong hover:text-brand",
             "motion-reduce:transition-none",
             FOCUS_RING,
@@ -360,39 +354,11 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Tablet navigation: scrollable tab strip under the brand row */}
-      <div className="hidden border-t border-border md:block xl:hidden">
-        <div className="mx-auto w-full max-w-[1760px]" style={GUTTER_STYLE}>
-          <nav
-            ref={tabletNavRef}
-            aria-label="Main navigation"
-            className="-mx-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <ul className="flex w-max min-w-full items-center justify-between gap-1">
-              {NAV_ITEMS.map((item) => (
-                <li key={item.id}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    onClick={() => handleNavClick(item.to)}
-                    className={({ isActive }) =>
-                      desktopItemClasses(isActive, "h-11")
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </div>
-
-      {/* Mobile navigation (phones only): regular links */}
+      {/* Mobile / tablet navigation: regular links */}
       <div
         id="mobile-menu"
         className={cn(
-          "absolute inset-x-0 top-full grid bg-surface md:hidden",
+          "absolute inset-x-0 top-full grid bg-surface lg:hidden",
           "motion-reduce:transition-none",
           mobileOpen
             ? "visible grid-rows-[1fr] opacity-100 shadow-card transition-[grid-template-rows,opacity,box-shadow] duration-300 ease-out"
@@ -401,7 +367,7 @@ export default function Navbar() {
       >
         <nav aria-label="Mobile navigation" className="min-h-0 overflow-hidden">
           {/* Scrolls on short screens (e.g. phones in landscape). */}
-          <div className="max-h-[calc(100vh-4rem)] max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-b border-border">
+          <div className="max-h-[calc(100vh-4.5rem)] max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-b border-border">
             <ul className="border-t border-border">
               {NAV_ITEMS.map((item, index) => {
                 const motion = mobileRowMotion(mobileOpen, index);

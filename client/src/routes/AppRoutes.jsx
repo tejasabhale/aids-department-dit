@@ -7,6 +7,8 @@ import Academics from "../pages/Academics/Academics";
 import Faculty from "../pages/Faculty/Faculty";
 import Research from "../pages/Research/Research";
 import StudentLife from "../pages/StudentLife/StudentLife";
+import Gallery from "../pages/Gallery/Gallery";
+import Placements from "../pages/Placements/Placements";
 
 const AppRoutes = () => {
   return (
@@ -18,6 +20,8 @@ const AppRoutes = () => {
         <Route path="/faculty" element={<Faculty />} />
         <Route path="/research" element={<Research />} />
         <Route path="/student-life" element={<StudentLife />} />
+        <Route path="/gallery" element={<Gallery />} />
+        <Route path="/placements" element={<Placements />} />
       </Route>
     </Routes>
   );

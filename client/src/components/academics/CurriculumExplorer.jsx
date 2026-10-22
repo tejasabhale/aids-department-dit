@@ -659,7 +659,8 @@ function TypeDot({ type }) {
   );
 }
 
-/* Custom dropdown that matches the site's styling (replaces native <select>). */
+/* Custom dropdown that matches the site's styling (replaces native <select>).
+ * Full width on phones, content width from `sm` up. */
 function TypeFilter({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -712,7 +713,7 @@ function TypeFilter({ value, onChange }) {
   };
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative w-full sm:w-auto">
       <button
         ref={buttonRef}
         type="button"
@@ -726,7 +727,7 @@ function TypeFilter({ value, onChange }) {
             setOpen(true);
           }
         }}
-        className={`inline-flex min-h-9 min-w-[10.5rem] items-center justify-between gap-3 rounded-lg border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition-[border-color,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none ${
+        className={`inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-[border-color,box-shadow] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none sm:min-h-9 sm:w-auto sm:min-w-[10.5rem] sm:py-1.5 sm:text-xs ${
           open
             ? "border-brand ring-2 ring-brand/10"
             : "border-border-strong hover:border-brand"
@@ -739,7 +740,7 @@ function TypeFilter({ value, onChange }) {
         <FiChevronDown
           size={15}
           aria-hidden="true"
-          className={`text-muted transition-transform duration-200 motion-reduce:transition-none ${
+          className={`shrink-0 text-muted transition-transform duration-200 motion-reduce:transition-none ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -749,7 +750,7 @@ function TypeFilter({ value, onChange }) {
         <ul
           role="listbox"
           aria-label="Subject type"
-          className="absolute right-0 z-20 mt-2 w-full min-w-[10.5rem] overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-soft"
+          className="absolute inset-x-0 z-20 mt-2 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-soft sm:inset-x-auto sm:right-0 sm:min-w-[10.5rem]"
         >
           {FILTER_OPTIONS.map((option, index) => {
             const isSelected = option.value === value;
@@ -767,7 +768,7 @@ function TypeFilter({ value, onChange }) {
                     close();
                   }}
                   onKeyDown={(event) => handleListKeyDown(event, index)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-gold motion-reduce:transition-none ${
+                  className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-gold motion-reduce:transition-none sm:min-h-0 sm:text-xs ${
                     isSelected
                       ? "bg-surface-muted text-brand"
                       : "text-foreground hover:bg-surface-muted"
@@ -817,6 +818,20 @@ export default function CurriculumExplorer() {
     (total, subject) => total + subject.credits,
     0,
   );
+  const totalLabel =
+    subjectType === "All"
+      ? "Total credits"
+      : `Credits shown (${subjectType.toLowerCase()})`;
+
+  /* Rows fade in one after another when the semester changes (opacity only, no movement). */
+  const rowMotion = (index) =>
+    reduceMotion
+      ? {}
+      : {
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          transition: { duration: 0.35, delay: index * 0.06, ease: EASE },
+        };
 
   const handleDownload = async () => {
     if (downloading) return;
@@ -846,7 +861,7 @@ export default function CurriculumExplorer() {
   return (
     <section
       aria-labelledby="curriculum-explorer-title"
-      className="w-full border-y border-border bg-surface-muted py-12 sm:py-14 lg:py-16"
+      className="w-full overflow-x-clip border-y border-border bg-surface-muted py-10 sm:py-12 lg:py-16 xl:py-20"
     >
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 2xl:px-12">
         {/* Section heading */}
@@ -855,27 +870,30 @@ export default function CurriculumExplorer() {
           whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.55, ease: EASE }}
-          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
         >
           <div className="max-w-3xl">
             <div className="mb-3 flex items-center gap-3">
-              <span aria-hidden="true" className="h-2 w-2 rotate-45 bg-gold" />
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rotate-45 bg-gold"
+              />
               <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand sm:text-xs">
                 Academic Resources
               </span>
               <span
                 aria-hidden="true"
-                className="h-px w-10 bg-border-strong sm:w-16"
+                className="h-px w-8 bg-border-strong sm:w-12 lg:w-16"
               />
             </div>
 
             <h2
               id="curriculum-explorer-title"
-              className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-4xl"
+              className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-4xl xl:text-5xl"
             >
               Curriculum <span className="text-brand">&amp; Syllabus</span>
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base lg:leading-7">
               Browse semester-wise subjects, course codes, credits, and
               practical work.
             </p>
@@ -887,77 +905,96 @@ export default function CurriculumExplorer() {
           </div>
         </motion.div>
 
-        {/* Semester tabs */}
+        {/* Semester selector: button grid below lg, original underline tabs on lg+ */}
         <div
-          className="mt-7 border-b border-border"
+          className="mt-6 grid grid-cols-4 gap-2 sm:mt-7 sm:grid-cols-8 sm:gap-2.5 lg:flex lg:gap-1 lg:border-b lg:border-border lg:pb-px"
           role="tablist"
           aria-label="Choose semester"
         >
-          <div className="flex gap-1 overflow-x-auto pb-px scrollbar-thin">
-            {semesters.map((semester) => {
-              const selected = activeSemester === semester.id;
-              return (
-                <button
-                  key={semester.id}
-                  id={`curriculum-tab-${semester.id}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  aria-controls="curriculum-panel"
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => setActiveSemester(semester.id)}
-                  onKeyDown={(event) => handleTabKeyDown(event, semester.id)}
-                  className={`relative min-w-fit whitespace-nowrap px-4 py-3 text-xs font-semibold transition-colors duration-200 sm:px-5 sm:text-sm ${
-                    selected ? "text-brand" : "text-muted hover:text-foreground"
-                  } focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-gold motion-reduce:transition-none`}
+          {semesters.map((semester) => {
+            const selected = activeSemester === semester.id;
+            return (
+              <button
+                key={semester.id}
+                id={`curriculum-tab-${semester.id}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls="curriculum-panel"
+                aria-label={semester.label}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveSemester(semester.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, semester.id)}
+                className={`relative flex min-h-12 flex-col items-center justify-center px-2 py-2 text-center transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold motion-reduce:transition-none max-lg:rounded-lg max-lg:border lg:min-h-0 lg:min-w-fit lg:px-5 lg:py-3 lg:focus-visible:outline-offset-[-2px] ${
+                  selected
+                    ? "max-lg:border-brand max-lg:bg-brand max-lg:text-on-brand max-lg:shadow-soft lg:text-brand"
+                    : "text-muted max-lg:border-border max-lg:bg-surface max-lg:hover:border-brand max-lg:hover:text-brand lg:hover:text-foreground"
+                }`}
+              >
+                {/* Phones and tablets: compact "Sem" + number */}
+                <span
+                  aria-hidden="true"
+                  className={`text-[9px] font-bold uppercase tracking-[0.16em] sm:text-[10px] lg:hidden ${
+                    selected ? "text-on-brand/80" : "text-muted"
+                  }`}
+                >
+                  Sem
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="text-base font-bold leading-none tabular-nums sm:text-lg lg:hidden"
+                >
+                  {semester.id}
+                </span>
+
+                {/* Desktop: full label with sliding underline */}
+                <span
+                  aria-hidden="true"
+                  className="hidden whitespace-nowrap text-sm font-semibold lg:inline"
                 >
                   {semester.label}
-                  {selected && (
-                    <motion.span
-                      layoutId="curriculum-active-tab"
-                      className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-brand"
-                      transition={{
-                        duration: reduceMotion ? 0 : 0.25,
-                        ease: EASE,
-                      }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                </span>
+                {selected && (
+                  <motion.span
+                    layoutId="curriculum-active-tab"
+                    className="absolute inset-x-3 bottom-0 hidden h-[3px] rounded-t-full bg-brand lg:block"
+                    transition={{
+                      duration: reduceMotion ? 0 : 0.25,
+                      ease: EASE,
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Subject table panel */}
-        <motion.div
-          key={activeSemester}
+        {/* Subject panel */}
+        <div
           id="curriculum-panel"
           role="tabpanel"
           aria-labelledby={`curriculum-tab-${activeSemester}`}
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.3, ease: EASE }}
-          className="mt-5 rounded-xl border border-border bg-surface shadow-soft"
+          className="mt-5 rounded-xl border border-border bg-surface shadow-soft sm:mt-6"
         >
           {/* Title + controls */}
-          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
-            <div>
-              <h3 className="text-base font-bold text-foreground sm:text-lg">
+          <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-foreground sm:text-lg xl:text-xl">
                 {currentSemester.label}
               </h3>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-xs text-muted sm:text-sm">
                 Course structure and credit distribution
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               <TypeFilter value={subjectType} onChange={setSubjectType} />
 
               <button
                 type="button"
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand transition-colors duration-200 hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors duration-200 hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none sm:min-h-9 sm:w-auto sm:px-3.5 sm:text-xs"
               >
                 <FiDownload size={15} aria-hidden="true" />
                 {downloading ? "Preparing..." : "Download syllabus"}
@@ -973,12 +1010,15 @@ export default function CurriculumExplorer() {
               { label: "Practical", value: practicalCount },
               { label: "Total credits", value: semesterCredits, accent: true },
             ].map((stat) => (
-              <div key={stat.label} className="bg-surface px-4 py-3.5 sm:px-6">
+              <div
+                key={stat.label}
+                className="min-w-0 bg-surface px-4 py-3 sm:px-6 sm:py-3.5"
+              >
                 <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
                   {stat.label}
                 </dt>
                 <dd
-                  className={`mt-1 text-xl font-bold tabular-nums ${
+                  className={`mt-1 text-lg font-bold tabular-nums sm:text-xl xl:text-2xl ${
                     stat.accent ? "text-brand" : "text-foreground"
                   }`}
                 >
@@ -988,16 +1028,73 @@ export default function CurriculumExplorer() {
             ))}
           </dl>
 
-          {/* Table */}
-          <div className="overflow-x-auto rounded-b-xl">
-            <table className="w-full min-w-[640px] border-collapse text-left">
+          {/* Phones: stacked subject cards (no sideways scrolling) */}
+          <div className="rounded-b-xl md:hidden">
+            {filteredSubjects.length === 0 ? (
+              <p className="px-4 py-10 text-center text-sm text-muted">
+                No subjects match this filter.
+              </p>
+            ) : (
+              <ul
+                aria-label={`${currentSemester.label} subjects`}
+                className="divide-y divide-border"
+              >
+                {filteredSubjects.map((subject, index) => (
+                  <motion.li
+                    key={`${activeSemester}-${subject.code}`}
+                    {...rowMotion(index)}
+                    className="flex items-start gap-3 px-4 py-4"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="w-6 shrink-0 pt-0.5 text-xs font-medium tabular-nums text-muted"
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-xs font-semibold text-brand">
+                        {subject.code}
+                      </p>
+                      <p className="mt-1 break-words text-sm font-medium leading-snug text-foreground">
+                        {subject.name}
+                      </p>
+                      <span className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-foreground">
+                        <TypeDot type={subject.type} />
+                        {subject.type}
+                      </span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-lg font-bold leading-none tabular-nums text-foreground">
+                        {subject.credits}
+                      </p>
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+                        {subject.credits === 1 ? "Credit" : "Credits"}
+                      </p>
+                    </div>
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center justify-between gap-4 rounded-b-xl border-t-2 border-gold bg-surface-muted px-4 py-4">
+              <span className="text-sm font-semibold text-foreground">
+                {totalLabel}
+              </span>
+              <span className="text-base font-bold tabular-nums text-brand">
+                {totalCredits}
+              </span>
+            </div>
+          </div>
+
+          {/* Tablets and up: full table */}
+          <div className="hidden overflow-x-auto rounded-b-xl md:block">
+            <table className="w-full border-collapse text-left">
               <caption className="sr-only">
                 {currentSemester.label} subjects, course codes, types and
                 credits
               </caption>
               <thead>
-                <tr className="border-b border-border-strong bg-surface-muted text-[10px] font-bold uppercase tracking-[0.14em] text-muted sm:text-[11px]">
-                  <th scope="col" className="w-16 px-4 py-3.5 sm:pl-6">
+                <tr className="border-b border-border-strong bg-surface-muted text-[10px] font-bold uppercase tracking-[0.14em] text-muted lg:text-[11px]">
+                  <th scope="col" className="w-16 px-4 py-3.5 lg:pl-6">
                     No.
                   </th>
                   <th scope="col" className="px-4 py-3.5">
@@ -1009,41 +1106,42 @@ export default function CurriculumExplorer() {
                   <th scope="col" className="px-4 py-3.5">
                     Type
                   </th>
-                  <th scope="col" className="px-4 py-3.5 text-right sm:pr-6">
+                  <th scope="col" className="px-4 py-3.5 text-right lg:pr-6">
                     Credits
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredSubjects.map((subject, index) => (
-                  <tr
-                    key={subject.code}
+                  <motion.tr
+                    key={`${activeSemester}-${subject.code}`}
+                    {...rowMotion(index)}
                     className="group transition-colors duration-150 hover:bg-surface-muted/70 motion-reduce:transition-none"
                   >
-                    <td className="relative w-16 px-4 py-4 text-xs font-medium tabular-nums text-muted sm:pl-6">
+                    <td className="relative w-16 px-4 py-4 text-xs font-medium tabular-nums text-muted lg:pl-6 xl:py-5">
                       <span
                         aria-hidden="true"
                         className="absolute inset-y-0 left-0 w-[3px] bg-gold opacity-0 transition-opacity duration-150 group-hover:opacity-100 motion-reduce:transition-none"
                       />
                       {String(index + 1).padStart(2, "0")}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-4 font-mono text-xs font-semibold text-brand">
+                    <td className="whitespace-nowrap px-4 py-4 font-mono text-xs font-semibold text-brand xl:py-5 xl:text-sm">
                       {subject.code}
                     </td>
-                    <td className="px-4 py-4 text-sm font-medium text-foreground">
+                    <td className="px-4 py-4 text-sm font-medium text-foreground xl:py-5 xl:text-base">
                       {subject.name}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="whitespace-nowrap px-4 py-4 xl:py-5">
                       {/* Plain label: small colour marker + text, no background or border */}
-                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-foreground">
+                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-foreground xl:text-sm">
                         <TypeDot type={subject.type} />
                         {subject.type}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-right text-sm font-semibold tabular-nums text-foreground sm:pr-6">
+                    <td className="px-4 py-4 text-right text-sm font-semibold tabular-nums text-foreground lg:pr-6 xl:py-5 xl:text-base">
                       {subject.credits}
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
                 {filteredSubjects.length === 0 && (
                   <tr>
@@ -1060,20 +1158,18 @@ export default function CurriculumExplorer() {
                 <tr className="border-t-2 border-gold bg-surface-muted">
                   <td
                     colSpan={4}
-                    className="px-4 py-4 text-sm font-semibold text-foreground sm:pl-6"
+                    className="px-4 py-4 text-sm font-semibold text-foreground lg:pl-6"
                   >
-                    {subjectType === "All"
-                      ? "Total credits"
-                      : `Credits shown (${subjectType.toLowerCase()})`}
+                    {totalLabel}
                   </td>
-                  <td className="px-4 py-4 text-right text-base font-bold tabular-nums text-brand sm:pr-6">
+                  <td className="px-4 py-4 text-right text-base font-bold tabular-nums text-brand lg:pr-6">
                     {totalCredits}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
