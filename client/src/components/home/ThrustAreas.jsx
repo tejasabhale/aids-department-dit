@@ -83,10 +83,10 @@ function PillarCard({ pillar, index }) {
   return (
     <motion.article
       variants={rise}
-      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border border-on-brand/10 bg-on-brand/5 p-2 transition-colors duration-500 hover:border-gold/50 motion-reduce:transition-none"
+      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-surface p-2 shadow-soft transition-[border-color,box-shadow] duration-500 hover:border-brand/35 motion-reduce:transition-none"
     >
       {/* Inset media */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-foreground lg:aspect-[16/9]">
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-surface-muted lg:aspect-[16/9]">
         <div className="thrust-card-media absolute -inset-y-[6%] inset-x-0">
           <img
             src={pillar.image}
@@ -97,11 +97,17 @@ function PillarCard({ pillar, index }) {
           />
         </div>
 
-        <span className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/80 text-gold backdrop-blur-sm transition-colors duration-300 group-hover:bg-gold group-hover:text-foreground motion-reduce:transition-none">
+        {/* Soft brand tint so images sit well on the light theme */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-tr from-brand/15 via-transparent to-gold/10"
+        />
+
+        <span className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl bg-surface/95 text-brand shadow-soft backdrop-blur-sm transition-colors duration-300 group-hover:bg-brand group-hover:text-on-brand motion-reduce:transition-none">
           <Icon size={18} aria-hidden="true" />
         </span>
 
-        <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-foreground/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-on-brand backdrop-blur-sm">
+        <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-surface/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground shadow-soft backdrop-blur-sm">
           <span
             aria-hidden="true"
             className="h-1.5 w-1.5 rounded-full bg-gold"
@@ -113,19 +119,19 @@ function PillarCard({ pillar, index }) {
       {/* Content */}
       <div className="relative flex flex-1 flex-col px-3 pb-5 pt-4 sm:px-4">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="text-lg font-bold leading-snug tracking-tight text-on-brand sm:text-xl">
+          <h3 className="text-lg font-bold leading-snug tracking-tight text-foreground sm:text-xl">
             {pillar.title}
           </h3>
 
           <span
             aria-hidden="true"
-            className="select-none text-4xl font-bold leading-none tracking-tighter text-transparent [-webkit-text-stroke:1px_color-mix(in_srgb,var(--color-on-brand)_30%,transparent)] [transition-property:color,-webkit-text-stroke-color] duration-500 group-hover:text-gold/15 group-hover:[-webkit-text-stroke-color:var(--color-gold)] motion-reduce:transition-none"
+            className="select-none text-4xl font-bold leading-none tracking-tighter text-transparent [-webkit-text-stroke:1px_color-mix(in_srgb,var(--color-brand)_28%,transparent)] [transition-property:color,-webkit-text-stroke-color] duration-500 group-hover:text-brand/10 group-hover:[-webkit-text-stroke-color:var(--color-brand)] motion-reduce:transition-none"
           >
             {pillar.number}
           </span>
         </div>
 
-        <p className="mt-2 max-w-prose text-sm leading-6 text-on-brand/70">
+        <p className="mt-2 max-w-prose text-sm leading-6 text-muted">
           {pillar.description}
         </p>
       </div>
@@ -182,15 +188,12 @@ export default function ThrustAreas() {
 
   const hasThreeCards = pillars.length <= 3;
 
-  const fadeEdges =
-    "radial-gradient(ellipse 90% 85% at 50% 50%, #000 35%, transparent 100%)";
-
   return (
     <section
       ref={sectionRef}
       id="thrust-areas"
       aria-labelledby="thrust-areas-title"
-      className={`thrust-areas-screen relative isolate w-full overflow-hidden bg-foreground py-8 sm:py-10 lg:py-6 ${
+      className={`thrust-areas-screen relative isolate w-full overflow-hidden border-b border-border bg-surface-muted py-8 sm:py-10 lg:py-6 ${
         hasThreeCards ? "lg:h-[100svh] lg:min-h-[680px]" : "lg:min-h-[100svh]"
       }`}
     >
@@ -203,17 +206,10 @@ export default function ThrustAreas() {
         }
       `}</style>
 
-      {/* Subtle light grid fading toward the edges */}
+      {/* Stable top accent bar in brand and gold */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, color-mix(in srgb, var(--color-on-brand) 3%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--color-on-brand) 3%, transparent) 1px, transparent 1px)",
-          backgroundSize: "56px 56px",
-          maskImage: fadeEdges,
-          WebkitMaskImage: fadeEdges,
-        }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-gold to-brand"
       />
 
       <div className="relative mx-auto flex h-full w-full max-w-[1600px] flex-col justify-center px-4 sm:px-6 lg:px-8 2xl:px-12">
@@ -232,30 +228,30 @@ export default function ThrustAreas() {
             >
               <span aria-hidden="true" className="h-2 w-2 rotate-45 bg-gold" />
 
-              <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-gold sm:text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-brand sm:text-xs">
                 Curricular Pillars
               </span>
 
               <motion.span
                 aria-hidden="true"
                 variants={shouldReduceMotion ? undefined : drawLine}
-                className="h-px w-12 origin-left bg-on-brand/25 sm:w-20"
+                className="h-px w-12 origin-left bg-brand/25 sm:w-20"
               />
             </motion.div>
 
             <motion.h2
               id="thrust-areas-title"
               variants={rise}
-              className="text-2xl font-bold leading-tight tracking-tight text-on-brand sm:text-3xl lg:text-4xl xl:text-[2.65rem]"
+              className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-4xl xl:text-[2.65rem]"
             >
               Thrust Areas of{" "}
-              <span className="text-gold">Learning &amp; Innovation</span>
+              <span className="text-brand">Learning &amp; Innovation</span>
             </motion.h2>
           </div>
 
           <motion.p
             variants={rise}
-            className="max-w-xl border-l-2 border-gold pl-4 text-xs leading-5 text-on-brand/70 sm:text-sm sm:leading-6 lg:text-[15px]"
+            className="max-w-xl border-l-2 border-gold pl-4 text-xs leading-5 text-muted sm:text-sm sm:leading-6 lg:text-[15px]"
           >
             Explore the domains shaping intelligent applications, visual
             systems, and scalable data engineering.
@@ -283,14 +279,14 @@ export default function ThrustAreas() {
           transition={{ duration: 0.5, ease: EASE }}
           className="mx-auto mt-5 flex w-full max-w-2xl items-center justify-center gap-3 text-center"
         >
-          <span aria-hidden="true" className="h-px flex-1 bg-on-brand/15" />
+          <span aria-hidden="true" className="h-px flex-1 bg-border" />
 
-          <p className="flex items-center gap-2 text-[10px] font-semibold text-on-brand/60 sm:text-xs">
+          <p className="flex items-center gap-2 text-[10px] font-semibold text-muted sm:text-xs">
             <FiCheckCircle className="shrink-0 text-gold" aria-hidden="true" />
             Theory. Experimentation. Real-world impact.
           </p>
 
-          <span aria-hidden="true" className="h-px flex-1 bg-on-brand/15" />
+          <span aria-hidden="true" className="h-px flex-1 bg-border" />
         </motion.div>
       </div>
     </section>

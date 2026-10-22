@@ -1,54 +1,72 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
+const unsplash = (id, width) =>
+  `https://images.unsplash.com/${id}?w=${width}&q=85&auto=format&fit=crop`;
+
+const IMAGE_WIDTHS = [640, 960, 1280, 1800];
 
 const HERO_IMAGES = [
   {
-    src: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1800&q=90&auto=format&fit=crop",
+    id: "photo-1516321318423-f06f85e504b3",
     alt: "Students collaborating on a laptop during a technology project",
   },
   {
-    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1800&q=90&auto=format&fit=crop",
+    id: "photo-1522071820081-009f0129c71c",
     alt: "A team working together on a technical project",
   },
   {
-    src: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1800&q=90&auto=format&fit=crop",
+    id: "photo-1519389950473-47ba0277781c",
     alt: "Students and colleagues collaborating around computers",
   },
-];
+].map((image) => ({
+  ...image,
+  src: unsplash(image.id, 1280),
+  srcSet: IMAGE_WIDTHS.map((w) => `${unsplash(image.id, w)} ${w}w`).join(", "),
+}));
 
-function useReducedMotion() {
-  const [reducedMotion, setReducedMotion] = useState(false);
+const IMAGE_SIZES = "(max-width: 900px) 100vw, 50vw";
+const SWIPE_THRESHOLD = 40;
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = (event) => setReducedMotion(event.matches);
+    const mediaQuery = window.matchMedia(query);
+    const update = (event) => setMatches(event.matches);
 
-    setReducedMotion(mediaQuery.matches);
+    setMatches(mediaQuery.matches);
 
     if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", updatePreference);
+      mediaQuery.addEventListener("change", update);
     } else {
-      mediaQuery.addListener(updatePreference);
+      mediaQuery.addListener(update);
     }
 
     return () => {
       if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", updatePreference);
+        mediaQuery.removeEventListener("change", update);
       } else {
-        mediaQuery.removeListener(updatePreference);
+        mediaQuery.removeListener(update);
       }
     };
-  }, []);
+  }, [query]);
 
-  return reducedMotion;
+  return matches;
 }
 
 export default function Hero() {
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  // Tilt only makes sense with a real mouse; touch screens skip it.
+  const canTilt = useMediaQuery("(hover: hover) and (pointer: fine)");
+
   const [mounted, setMounted] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const stageRef = useRef(null);
+  const touchStartX = useRef(null);
+
+  const tiltEnabled = canTilt && !reducedMotion;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true));
@@ -56,17 +74,27 @@ export default function Hero() {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) return undefined;
+    if (reducedMotion || paused) return undefined;
 
     const interval = window.setInterval(() => {
       setActiveImage((current) => (current + 1) % HERO_IMAGES.length);
     }, 5500);
 
     return () => window.clearInterval(interval);
-  }, [reducedMotion]);
+  }, [reducedMotion, paused, activeImage]);
+
+  const showPreviousImage = useCallback(() => {
+    setActiveImage(
+      (current) => (current - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
+    );
+  }, []);
+
+  const showNextImage = useCallback(() => {
+    setActiveImage((current) => (current + 1) % HERO_IMAGES.length);
+  }, []);
 
   function handlePointerMove(event) {
-    if (reducedMotion || !stageRef.current) return;
+    if (!tiltEnabled || !stageRef.current) return;
 
     const bounds = stageRef.current.getBoundingClientRect();
     const pointerX = (event.clientX - bounds.left) / bounds.width - 0.5;
@@ -77,16 +105,29 @@ export default function Hero() {
 
   function resetTilt() {
     setTilt({ x: 0, y: 0 });
+    setPaused(false);
   }
 
-  function showPreviousImage() {
-    setActiveImage(
-      (current) => (current - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
-    );
+  function handleTouchStart(event) {
+    touchStartX.current = event.touches[0].clientX;
+    setPaused(true);
   }
 
-  function showNextImage() {
-    setActiveImage((current) => (current + 1) % HERO_IMAGES.length);
+  function handleTouchEnd(event) {
+    if (touchStartX.current === null) return;
+
+    const delta = event.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    setPaused(false);
+
+    if (Math.abs(delta) < SWIPE_THRESHOLD) return;
+    if (delta > 0) showPreviousImage();
+    else showNextImage();
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "ArrowLeft") showPreviousImage();
+    if (event.key === "ArrowRight") showNextImage();
   }
 
   return (
@@ -109,6 +150,10 @@ export default function Hero() {
           --hero-muted: var(--app-text-muted, #6b6262);
           --hero-border: var(--app-border, #e8e1e1);
 
+          /* Set --navbar-height on a parent if you have a fixed/sticky navbar. */
+          --hero-offset: var(--navbar-height, 0px);
+          --hero-gutter: clamp(20px, 5vw, 100px);
+
           position: relative;
           isolation: isolate;
           display: flex;
@@ -116,17 +161,18 @@ export default function Hero() {
           width: 100%;
           max-width: 100%;
           min-width: 0;
-          height: 100vh;
-          height: 100svh;
-          min-height: 0;
+          min-height: calc(100vh - var(--hero-offset));
+          min-height: calc(100svh - var(--hero-offset));
           overflow: hidden;
-          padding-block: clamp(12px, 2svh, 26px);
+          padding-block: clamp(28px, 6svh, 80px);
           color: var(--hero-text);
           background:
             radial-gradient(circle at 5% 15%, rgb(209 165 80 / 10%), transparent 27%),
             radial-gradient(circle at 92% 80%, rgb(178 43 47 / 6%), transparent 30%),
             var(--hero-background);
           font-family: var(--font-sans, "Inter", "Segoe UI", Arial, sans-serif);
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
         }
 
         .ads-hero *,
@@ -147,8 +193,8 @@ export default function Hero() {
         .ads-hero__orb {
           position: absolute;
           z-index: -1;
-          width: 330px;
-          height: 330px;
+          width: clamp(200px, 24vw, 420px);
+          aspect-ratio: 1;
           border: 1px solid rgb(209 165 80 / 23%);
           border-radius: 50%;
           pointer-events: none;
@@ -162,33 +208,31 @@ export default function Hero() {
         .ads-hero__orb--bottom {
           bottom: -250px;
           left: -120px;
-          width: 390px;
-          height: 390px;
+          width: clamp(240px, 28vw, 480px);
           border-color: rgb(178 43 47 / 12%);
         }
 
-        /* Full-width layout: left column gets slightly more room for larger text. */
+        /* ---------- Layout: two columns by default ---------- */
         .ads-hero__grid {
           display: grid;
           grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
           align-items: center;
-          gap: clamp(28px, 4.5vw, 80px);
+          gap: clamp(28px, 4.5vw, 96px);
           width: 100%;
-          height: 100%;
-          min-height: 0;
-          margin: 0;
-          padding-inline: clamp(24px, 6vw, 100px);
+          max-width: 1760px;
+          margin-inline: auto;
+          padding-inline: var(--hero-gutter);
+          padding-left: max(var(--hero-gutter), env(safe-area-inset-left));
+          padding-right: max(var(--hero-gutter), env(safe-area-inset-right));
         }
 
-        /* Copy is vertically centered and left-aligned with the page gutter. */
         .ads-hero__copy {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           justify-content: center;
           min-width: 0;
-          max-width: 720px;
-          padding-block: 8px;
+          max-width: 760px;
         }
 
         .ads-hero__reveal {
@@ -209,14 +253,16 @@ export default function Hero() {
         .ads-hero__reveal--3 { transition-delay: 220ms; }
         .ads-hero__reveal--4 { transition-delay: 310ms; }
 
+        /* ---------- Fluid typography ---------- */
         .ads-hero__title {
-          margin: 0 0 clamp(16px, 2.6svh, 26px);
+          margin: 0 0 clamp(14px, 2.4svh, 28px);
           color: var(--hero-text);
-          font-size: clamp(2.9rem, 5.5vw, 5.8rem);
+          font-size: clamp(2rem, 1.1rem + 3.7vw, 5.6rem);
           font-weight: 750;
-          letter-spacing: -0.055em;
-          line-height: 1.02;
+          letter-spacing: -0.05em;
+          line-height: 1.04;
           text-wrap: balance;
+          overflow-wrap: break-word;
         }
 
         .ads-hero__title span {
@@ -224,79 +270,20 @@ export default function Hero() {
         }
 
         .ads-hero__description {
-          max-width: 580px;
-          margin: 0 0 clamp(22px, 3.4svh, 34px);
+          max-width: 36em;
+          margin: 0 0 clamp(20px, 3.2svh, 36px);
           color: var(--hero-muted);
-          font-size: clamp(15px, 1.35vw, 19px);
+          font-size: clamp(0.94rem, 0.85rem + 0.4vw, 1.2rem);
           line-height: 1.65;
-        }
-
-        .ads-hero__actions {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-bottom: clamp(20px, 3svh, 30px);
-        }
-
-        .ads-hero__primary-button,
-        .ads-hero__secondary-button {
-          display: inline-flex;
-          min-height: 54px;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 0 26px;
-          border-radius: 10px;
-          font-size: 15px;
-          font-weight: 650;
-          text-decoration: none;
-          white-space: nowrap;
-          transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
-        }
-
-        .ads-hero__primary-button {
-          border: 1px solid var(--hero-primary);
-          background: var(--hero-primary);
-          color: #ffffff;
-        }
-
-        .ads-hero__primary-button:hover {
-          transform: translateY(-1px);
-          border-color: var(--hero-primary-hover);
-          background: var(--hero-primary-hover);
-        }
-
-        .ads-hero__secondary-button {
-          border: 1px solid var(--hero-border);
-          background: #ffffff;
-          color: var(--hero-text);
-        }
-
-        .ads-hero__secondary-button:hover {
-          border-color: var(--hero-primary);
-          color: var(--hero-primary);
-        }
-
-        .ads-hero__button-arrow {
-          display: inline-block;
-          font-size: 19px;
-          line-height: 1;
-          transition: transform 180ms ease;
-        }
-
-        .ads-hero__primary-button:hover .ads-hero__button-arrow,
-        .ads-hero__secondary-button:hover .ads-hero__button-arrow {
-          transform: translateX(3px);
         }
 
         .ads-hero__focus-areas {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
-          gap: 10px 22px;
+          gap: 8px 22px;
           color: var(--hero-muted);
-          font-size: 13.5px;
+          font-size: clamp(12px, 0.75rem + 0.15vw, 14px);
           font-weight: 600;
         }
 
@@ -315,6 +302,7 @@ export default function Hero() {
           content: "";
         }
 
+        /* ---------- Visual / carousel ---------- */
         .ads-hero__visual {
           position: relative;
           width: 100%;
@@ -334,13 +322,13 @@ export default function Hero() {
         .ads-hero__image-frame {
           position: relative;
           width: 100%;
-          height: min(72svh, 690px);
-          min-height: 0;
+          height: clamp(320px, 68svh, 760px);
           overflow: hidden;
-          border: 7px solid #ffffff;
-          border-radius: 20px;
+          border: clamp(4px, 0.5vw, 7px) solid #ffffff;
+          border-radius: clamp(14px, 1.4vw, 22px);
           background: var(--hero-surface-muted);
           box-shadow: 0 22px 54px rgb(39 35 35 / 14%), 0 2px 8px rgb(39 35 35 / 5%);
+          touch-action: pan-y;
           will-change: transform;
           transition: transform 220ms ease-out;
         }
@@ -348,12 +336,17 @@ export default function Hero() {
         .ads-hero__image-layer {
           position: absolute;
           inset: 0;
+          display: block;
+          width: 100%;
+          height: 100%;
           background-color: #eee8e4;
-          background-position: center;
-          background-size: cover;
+          object-fit: cover;
+          object-position: center;
           opacity: 0;
           transform: scale(1.015);
           transition: opacity 850ms ease, transform 5.5s linear;
+          user-select: none;
+          -webkit-user-drag: none;
         }
 
         .ads-hero__image-layer--active {
@@ -372,9 +365,9 @@ export default function Hero() {
         .ads-hero__image-caption {
           position: absolute;
           z-index: 2;
-          right: clamp(18px, 2vw, 30px);
-          bottom: 54px;
-          left: clamp(18px, 2vw, 30px);
+          right: clamp(14px, 2vw, 32px);
+          bottom: clamp(38px, 4.4vw, 58px);
+          left: clamp(14px, 2vw, 32px);
           color: #ffffff;
           pointer-events: none;
         }
@@ -383,7 +376,7 @@ export default function Hero() {
           display: block;
           margin-bottom: 5px;
           color: rgb(255 255 255 / 86%);
-          font-size: 10px;
+          font-size: clamp(8px, 0.55rem + 0.15vw, 11px);
           font-weight: 650;
           letter-spacing: 0.13em;
           text-transform: uppercase;
@@ -392,21 +385,20 @@ export default function Hero() {
         .ads-hero__image-caption strong {
           display: block;
           max-width: 560px;
-          font-size: clamp(17px, 2vw, 25px);
+          font-size: clamp(14px, 0.7rem + 0.9vw, 26px);
           font-weight: 650;
           letter-spacing: -0.025em;
           line-height: 1.25;
           text-wrap: balance;
         }
 
-        /* Arrow controls stay vertically centered inside the image frame. */
         .ads-hero__carousel-button {
           position: absolute;
           z-index: 5;
           top: 50%;
           display: grid;
-          width: 42px;
-          height: 42px;
+          width: clamp(34px, 3vw, 44px);
+          height: clamp(34px, 3vw, 44px);
           place-items: center;
           padding: 0;
           transform: translateY(-50%);
@@ -415,13 +407,14 @@ export default function Hero() {
           background: rgb(255 255 255 / 95%);
           color: var(--hero-text);
           cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
           transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
         }
 
         .ads-hero__carousel-button svg {
           display: block;
-          width: 19px;
-          height: 19px;
+          width: 55%;
+          height: 55%;
           stroke: currentColor;
           stroke-width: 2;
           stroke-linecap: round;
@@ -440,38 +433,47 @@ export default function Hero() {
           outline-offset: 3px;
         }
 
-        .ads-hero__carousel-button--previous {
-          left: clamp(12px, 1.8vw, 24px);
-        }
-
-        .ads-hero__carousel-button--next {
-          right: clamp(12px, 1.8vw, 24px);
-        }
+        .ads-hero__carousel-button--previous { left: clamp(10px, 1.8vw, 24px); }
+        .ads-hero__carousel-button--next { right: clamp(10px, 1.8vw, 24px); }
 
         .ads-hero__dots {
           position: absolute;
           z-index: 5;
           right: 0;
-          bottom: 15px;
+          bottom: clamp(10px, 1.2vw, 16px);
           left: 0;
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: 7px;
+          gap: 4px;
         }
 
+        /* The visible dot is small, but the tap target is at least 24px wide. */
         .ads-hero__dot {
-          width: 7px;
-          height: 7px;
+          position: relative;
+          width: 24px;
+          height: 24px;
           padding: 0;
           border: 0;
+          background: transparent;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .ads-hero__dot::after {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 7px;
+          height: 7px;
+          transform: translate(-50%, -50%);
           border-radius: 99px;
           background: rgb(255 255 255 / 72%);
-          cursor: pointer;
+          content: "";
           transition: width 200ms ease, background-color 200ms ease;
         }
 
-        .ads-hero__dot--active {
+        .ads-hero__dot--active::after {
           width: 22px;
           background: var(--hero-accent);
         }
@@ -493,273 +495,133 @@ export default function Hero() {
         .ads-hero--reduced-motion .ads-hero__visual,
         .ads-hero--reduced-motion .ads-hero__image-layer,
         .ads-hero--reduced-motion .ads-hero__image-frame,
-        .ads-hero--reduced-motion .ads-hero__dot {
+        .ads-hero--reduced-motion .ads-hero__dot::after {
           transition-duration: 0.01ms;
+          transition-delay: 0ms;
           transform: none;
         }
 
-        @media (max-width: 1100px) and (min-width: 761px) {
+        /* ---------- Ultra-wide / 4K ---------- */
+        @media (min-width: 1920px) {
+          .ads-hero__copy { max-width: 860px; }
+          .ads-hero__image-frame { height: clamp(520px, 66svh, 860px); }
+        }
+
+        /* ---------- Small laptops / large tablets landscape ---------- */
+        @media (max-width: 1180px) {
           .ads-hero__grid {
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: clamp(20px, 3vw, 36px);
-            padding-inline: clamp(24px, 4vw, 54px);
-          }
-
-          .ads-hero__title {
-            font-size: clamp(2.4rem, 5vw, 3.8rem);
-          }
-
-          .ads-hero__description {
-            font-size: 15px;
-            line-height: 1.6;
-          }
-
-          .ads-hero__primary-button,
-          .ads-hero__secondary-button {
-            min-height: 48px;
-            padding-inline: 20px;
-            font-size: 14px;
-          }
-
-          .ads-hero__focus-areas {
-            font-size: 12.5px;
+            gap: clamp(20px, 3vw, 40px);
           }
 
           .ads-hero__image-frame {
-            height: min(66svh, 540px);
+            height: clamp(320px, 60svh, 560px);
           }
         }
 
-        @media (max-width: 760px) {
+        /* ---------- Tablets portrait and below: stack ---------- */
+        @media (max-width: 900px) {
           .ads-hero {
-            padding-block: clamp(10px, 1.8svh, 18px);
+            align-items: flex-start;
+            padding-block: clamp(24px, 5svh, 48px) clamp(28px, 5svh, 48px);
           }
 
           .ads-hero__grid {
             grid-template-columns: minmax(0, 1fr);
-            grid-template-rows: auto minmax(0, 1fr);
-            align-content: stretch;
-            gap: clamp(12px, 2svh, 18px);
-            padding-inline: clamp(16px, 4.5vw, 28px);
+            align-items: start;
+            gap: clamp(24px, 4svh, 40px);
           }
 
           .ads-hero__copy {
-            max-width: none;
-            padding-block: 0;
+            max-width: 680px;
           }
 
           .ads-hero__title {
-            max-width: 640px;
-            margin-bottom: clamp(8px, 1.4svh, 14px);
-            font-size: clamp(2.1rem, 8vw, 3.2rem);
-            line-height: 1.04;
+            font-size: clamp(2rem, 1.2rem + 4.6vw, 3.6rem);
           }
 
-          .ads-hero__description {
-            max-width: 620px;
-            margin-bottom: clamp(12px, 1.8svh, 18px);
-            font-size: clamp(13px, 2.8vw, 16px);
-            line-height: 1.5;
+          .ads-hero__visual {
+            max-width: 760px;
           }
 
-          .ads-hero__actions {
-            gap: 8px;
-            margin-bottom: clamp(10px, 1.6svh, 14px);
+          .ads-hero__image-frame {
+            height: auto;
+            aspect-ratio: 16 / 11;
           }
 
-          .ads-hero__primary-button,
-          .ads-hero__secondary-button {
-            min-height: 44px;
-            padding-inline: 16px;
-            font-size: 12.5px;
+          .ads-hero__visual-accent {
+            top: -10px;
+            right: -10px;
+            border-width: 2px;
+          }
+        }
+
+        /* ---------- Phones ---------- */
+        @media (max-width: 560px) {
+          .ads-hero__image-frame {
+            aspect-ratio: 4 / 4.2;
+          }
+
+          .ads-hero__carousel-button--previous { left: 8px; }
+          .ads-hero__carousel-button--next { right: 8px; }
+        }
+
+        @media (max-width: 360px) {
+          .ads-hero {
+            --hero-gutter: 16px;
+          }
+
+          .ads-hero__title {
+            letter-spacing: -0.04em;
           }
 
           .ads-hero__focus-areas {
             gap: 6px 14px;
-            font-size: 11px;
+          }
+        }
+
+        /* ---------- Short landscape screens (phones on their side) ---------- */
+        @media (max-height: 520px) and (orientation: landscape) and (max-width: 1000px) {
+          .ads-hero {
+            align-items: center;
+            padding-block: 16px;
+          }
+
+          .ads-hero__grid {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+            align-items: center;
+            gap: 20px;
+          }
+
+          .ads-hero__title {
+            margin-bottom: 8px;
+            font-size: clamp(1.5rem, 4.4vw, 2.3rem);
+          }
+
+          .ads-hero__description {
+            margin-bottom: 12px;
+            font-size: 12px;
+            line-height: 1.45;
           }
 
           .ads-hero__visual {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            min-height: 0;
-            margin-inline: auto;
+            max-width: none;
           }
 
           .ads-hero__image-frame {
-            width: 100%;
-            height: 100%;
-            min-height: 0;
-            border-width: 5px;
-            border-radius: 14px;
-          }
-
-          .ads-hero__visual-accent {
-            top: -9px;
-            right: -9px;
-            border-width: 2px;
-          }
-
-          .ads-hero__carousel-button {
-            width: 34px;
-            height: 34px;
-          }
-
-          .ads-hero__carousel-button svg {
-            width: 16px;
-            height: 16px;
-          }
-
-          .ads-hero__carousel-button--previous { left: 10px; }
-          .ads-hero__carousel-button--next { right: 10px; }
-
-          .ads-hero__image-caption {
-            right: 13px;
-            bottom: 43px;
-            left: 13px;
-          }
-
-          .ads-hero__image-caption small {
-            font-size: 8px;
-          }
-
-          .ads-hero__image-caption strong {
-            font-size: clamp(14px, 3.5vw, 20px);
-          }
-
-          .ads-hero__dots {
-            bottom: 12px;
+            height: clamp(200px, 76svh, 360px);
+            aspect-ratio: auto;
           }
         }
 
-        @media (max-width: 480px) {
-          .ads-hero__grid {
-            padding-inline: 14px;
-          }
-
-          .ads-hero__title {
-            font-size: clamp(1.95rem, 9vw, 2.6rem);
-          }
-
-          .ads-hero__description {
-            font-size: 12.5px;
-            line-height: 1.48;
-          }
-
-          .ads-hero__actions {
-            gap: 7px;
-          }
-
-          .ads-hero__primary-button,
-          .ads-hero__secondary-button {
-            min-height: 40px;
-            padding-inline: 12px;
-            gap: 6px;
-            font-size: 11.5px;
-          }
-
-          .ads-hero__focus-areas {
-            gap: 5px 10px;
-            font-size: 10px;
-          }
-
-          .ads-hero__image-caption {
-            right: 11px;
-            left: 11px;
-          }
-
-          .ads-hero__image-caption strong {
-            font-size: 14px;
-          }
-        }
-
-        @media (max-height: 680px) and (min-width: 761px) {
+        /* Short desktop windows */
+        @media (max-height: 680px) and (min-width: 901px) {
           .ads-hero {
-            padding-block: 8px;
-          }
-
-          .ads-hero__grid {
-            gap: clamp(18px, 2.8vw, 38px);
-          }
-
-          .ads-hero__title {
-            margin-bottom: 12px;
-            font-size: clamp(2.2rem, 4.2vw, 3.5rem);
-            line-height: 1.03;
-          }
-
-          .ads-hero__description {
-            margin-bottom: 16px;
-            font-size: 14px;
-            line-height: 1.5;
-          }
-
-          .ads-hero__actions {
-            margin-bottom: 14px;
-          }
-
-          .ads-hero__primary-button,
-          .ads-hero__secondary-button {
-            min-height: 44px;
-            font-size: 13.5px;
-          }
-
-          .ads-hero__focus-areas {
-            font-size: 12px;
+            padding-block: 20px;
           }
 
           .ads-hero__image-frame {
-            height: min(66svh, 440px);
-          }
-        }
-
-        @media (max-width: 760px) and (max-height: 520px) and (orientation: landscape) {
-          .ads-hero__grid {
-            grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-            grid-template-rows: minmax(0, 1fr);
-            gap: 14px;
-            padding-inline: 18px;
-          }
-
-          .ads-hero__title {
-            margin-bottom: 7px;
-            font-size: clamp(1.5rem, 4.6vw, 2.2rem);
-          }
-
-          .ads-hero__description {
-            margin-bottom: 8px;
-            font-size: 11px;
-            line-height: 1.4;
-          }
-
-          .ads-hero__actions {
-            gap: 6px;
-            margin-bottom: 8px;
-          }
-
-          .ads-hero__primary-button,
-          .ads-hero__secondary-button {
-            min-height: 34px;
-            padding-inline: 10px;
-            font-size: 9.5px;
-          }
-
-          .ads-hero__focus-areas {
-            gap: 4px 8px;
-            font-size: 8.5px;
-          }
-
-          .ads-hero__image-frame {
-            height: 100%;
-          }
-
-          .ads-hero__image-caption {
-            bottom: 36px;
-          }
-
-          .ads-hero__image-caption strong {
-            font-size: 13px;
+            height: clamp(300px, 70svh, 440px);
           }
         }
       `}</style>
@@ -828,21 +690,6 @@ export default function Hero() {
             real-world problems with technology.
           </p>
 
-          <div className="ads-hero__reveal ads-hero__reveal--3 ads-hero__actions">
-            <Link to="/about" className="ads-hero__primary-button">
-              Explore the Department
-              <span className="ads-hero__button-arrow" aria-hidden="true">
-                →
-              </span>
-            </Link>
-            <Link to="/academics" className="ads-hero__secondary-button">
-              View Academics
-              <span className="ads-hero__button-arrow" aria-hidden="true">
-                ↗
-              </span>
-            </Link>
-          </div>
-
           <div
             className="ads-hero__reveal ads-hero__reveal--4 ads-hero__focus-areas"
             aria-label="Department focus areas"
@@ -862,24 +709,43 @@ export default function Hero() {
           <div
             className="ads-hero__image-frame"
             ref={stageRef}
+            onMouseEnter={() => setPaused(true)}
             onMouseMove={handlePointerMove}
             onMouseLeave={resetTilt}
-            style={{
-              transform: reducedMotion
-                ? undefined
-                : `perspective(1200px) rotateX(${-tilt.y * 0.18}deg) rotateY(${tilt.x * 0.18}deg)`,
+            onFocus={() => setPaused(true)}
+            onBlur={() => setPaused(false)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={() => {
+              touchStartX.current = null;
+              setPaused(false);
             }}
+            onKeyDown={handleKeyDown}
+            style={{
+              transform: tiltEnabled
+                ? `perspective(1200px) rotateX(${-tilt.y * 0.18}deg) rotateY(${tilt.x * 0.18}deg)`
+                : undefined,
+            }}
+            role="group"
+            aria-roledescription="carousel"
             aria-label="Department and technology highlights"
           >
             {HERO_IMAGES.map((image, index) => (
-              <div
-                key={image.src}
+              <img
+                key={image.id}
                 className={`ads-hero__image-layer ${
                   index === activeImage ? "ads-hero__image-layer--active" : ""
                 }`}
-                style={{ backgroundImage: `url("${image.src}")` }}
-                role="img"
-                aria-label={image.alt}
+                src={image.src}
+                srcSet={image.srcSet}
+                sizes={IMAGE_SIZES}
+                alt={image.alt}
+                width="1280"
+                height="853"
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
+                decoding="async"
+                draggable="false"
                 aria-hidden={index !== activeImage}
               />
             ))}
@@ -913,10 +779,14 @@ export default function Hero() {
               </svg>
             </button>
 
-            <div className="ads-hero__dots" aria-label="Choose a hero image">
+            <div
+              className="ads-hero__dots"
+              role="group"
+              aria-label="Choose a hero image"
+            >
               {HERO_IMAGES.map((image, index) => (
                 <button
-                  key={image.src}
+                  key={image.id}
                   className={`ads-hero__dot ${
                     index === activeImage ? "ads-hero__dot--active" : ""
                   }`}
